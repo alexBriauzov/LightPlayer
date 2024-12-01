@@ -12,6 +12,7 @@ Player::Player() {
     needsRerender = true;
     playPosRatio = 0;
     selectedButton = NULL;
+    selectedClick = NULL;
 	this->initWindow();
 }
 
