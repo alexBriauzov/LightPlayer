@@ -3,7 +3,7 @@
 
 int main(int argv, char** args) {
 
-    SDL_Init(SDL_INIT_EVERYTHING);
+	SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 	Player player;
 
 	while(!player.isRunning){

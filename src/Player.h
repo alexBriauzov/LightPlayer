@@ -32,7 +32,7 @@ public:
 
 private:
 
-    Mix_Music* gMusic = NULL;
+    inline static Mix_Music* soundFile = NULL;
 
     inline static Button* playButton;
     inline static Button* dirButton;
@@ -64,9 +64,9 @@ private:
 
     void updateTimeline();
 
-    int currentPlayPos;
-    int maxPlayPos;
-    double playPosRatio;
+    inline static double currentSecond;
+    inline static double fileLength;
+    inline static double playPosRatio;
 
     bool mouseDown;
     bool isSettingplayPosRatio;

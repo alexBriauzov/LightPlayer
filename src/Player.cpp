@@ -22,6 +22,7 @@ Player::~Player() {
 void Player::initWindow(){
     window = SDL_CreateWindow( "LightPlayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 400, 50, SDL_WINDOW_ALLOW_HIGHDPI);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 );
 
     if(window == NULL || renderer == NULL){
         SDL_Quit();	
@@ -44,11 +45,22 @@ void Player::initWindow(){
     timeline1 = {90, 10, 0, 30};
     timeline2 = {90, 10, 300, 30};
 
-    currentPlayPos = 0;
+    currentSecond = 0;
     isRunning = true;
 }
 
 void Player::update(){
+    if(soundFile != NULL){
+        double newSecond = Mix_GetMusicPosition(soundFile);
+        if(newSecond != currentSecond){
+            needsRerender = true;
+            currentSecond = newSecond;
+            if(isPlaying){
+                playPosRatio = currentSecond/fileLength;
+                updateTimeline();
+            }
+        }
+    }
 
     int newMouseX; int newMouseY;
 	SDL_GetMouseState(&newMouseX,&newMouseY);
@@ -79,7 +91,12 @@ void Player::update(){
 
 		case SDL_MOUSEBUTTONUP:
             mouseDown = false;
-            isSettingplayPosRatio = false;
+            if(isSettingplayPosRatio){
+                isSettingplayPosRatio = false;
+                Mix_ResumeMusic();
+                playButton->setTexture(texPause);
+                isPlaying = true;
+            }
             if(selectedClick != NULL){
                 selectedClick->onClick();
             }
@@ -89,6 +106,7 @@ void Player::update(){
             mouseDown = true;
             if(isMouseOverPlaycontrol(newMouseX, newMouseY)){
                 isPlaying = false;
+                Mix_PauseMusic();
                 playButton->setTexture(texPlay);
                 isSettingplayPosRatio = true;
             }
@@ -107,11 +125,11 @@ void Player::update(){
             needsRerender = true;
             playPosRatio = newRatio;
             updateTimeline();
+            if(soundFile != NULL){
+                Mix_SetMusicPosition(playPosRatio*fileLength);
+            }
         }
     }
-
-    //playPosRatio = ((double) currentPlayPos) / maxPlayPos;
-
 }
 
 void Player::render(){
@@ -170,8 +188,14 @@ void Player::updateTimeline(){
 void Player::clickPlay(){
     if(isPlaying){
         playButton->setTexture(texPlay);
+        if(soundFile != NULL){
+            Mix_PauseMusic();
+        }
     } else {
         playButton->setTexture(texPause);
+        if(soundFile != NULL){
+            Mix_ResumeMusic();
+        }
     }
     isPlaying = !isPlaying;
     playButton->onEnter();
@@ -179,7 +203,18 @@ void Player::clickPlay(){
 }
 
 void Player::clickBrowse(){
-     std::wstring filePath = OpenFileDialog();
+    isPlaying = false;
+    std::wstring filePath = OpenFileDialog();
+    if (!filePath.empty()) {
+        std::string str( filePath.begin(), filePath.end() );
+        soundFile = Mix_LoadMUS(str.c_str());
+        std::cout << "Selected file: " << str << std::endl;
+        Mix_PlayMusic( soundFile, -1 );
+        isPlaying = true;
+        playButton->setTexture(texPause);
+        needsRerender = true;
+        fileLength = Mix_MusicDuration(soundFile);
+    }
 }
 
 std::wstring Player::OpenFileDialog()
